@@ -1,5 +1,6 @@
-package com.example.lesson7_spring_data.security;
+package com.example.lesson7_spring_data.config;
 
+import com.example.lesson7_spring_data.security.UserAuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -64,7 +65,7 @@ public class SecurityConfig {
                 .authorizeRequests(auth -> {
                     auth.antMatchers("/**/*.css", "/**/*.js").permitAll();
                     auth.antMatchers("/product/**").permitAll();
-                    auth.antMatchers("/cart/**").permitAll();
+                    auth.antMatchers("/cart/**").authenticated();
                     try {
                         auth.antMatchers("/user/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                                 .and()
