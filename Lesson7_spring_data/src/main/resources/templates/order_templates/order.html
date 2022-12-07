@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+
+<head th:replace="fragments/head.html :: head"></head>
+
+<body>
+
+
+<div class="container">
+    <div class="row py-2">
+        <div class="form-inline mx-3">
+            <form th:action="@{/product}" th:method="get">
+                <button type="submit" class="btn btn-primary">To the main page</button>
+            </form>
+        </div>
+
+        <div class="form-inline mx-3">
+            <form th:action="@{/cart}" th:method="get">
+                <button type="submit" class="btn btn-primary">Return to cart</button>
+            </form>
+        </div>
+
+        <div class="col-12 mt-2">
+            <table class="table table-bordered ">
+                <thead>
+                <tr>
+                    <th scope="col">Product name</th>
+
+                    <th scope="col">Count</th>
+
+                    <th scope="col">Cost($)</th>
+
+                    <th scope="col">Total cost($)</th>
+
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${order}" th:each="order : ${orders}">
+                    <td th:text="${order.getProduct().getTitle()}"></td>
+                    <td th:text="${order.getQty()}"></td>
+                    <td th:text="${order.getProduct().getPrice()}"></td>
+                    <td th:text="${order.getProduct().getTotalPrice()}"></td>
+
+                </tbody>
+            </table>
+            <div>
+                <hr>
+                <tr>
+                    <th scope="col"><b>Итого</b></th>
+                    <th></th>
+                    <th></th>
+                    <th th:text="*{sumInCart}"></th>
+                </tr>
+            </div>
+        </div>
+
+        <div>
+            <hr>
+            <form th:action="@{/order/create}" th:method="post" th:object="${order}">
+
+                <div class="form-group">
+                    <label>Your phone</label>
+                    <input type="text" th:field="*{phone}" class="form-control" placeholder="Phone">
+                </div>
+
+                <div class="form-group">
+                    <label>Your address</label>
+                    <input type="text" th:field="*{address}" class="form-control" placeholder="Address">
+                </div>
+
+                <button type="submit" class="btn btn-primary">Add</button>
+            </form>
+            <br>
+        </div>
+        <form th:action="@{/product}" th:method="get">
+            <button type="submit" class="btn btn-primary">To the main page</button>
+        </form>
+    </div>
+</div>
+
+<th:block th:replace="fragments/flooter.html :: scripts"/>
+
+</body>
+</html>

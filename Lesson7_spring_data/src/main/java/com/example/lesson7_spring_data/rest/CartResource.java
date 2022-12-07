@@ -1,8 +1,15 @@
 package com.example.lesson7_spring_data.rest;
 
-import com.example.lesson7_spring_data.service.cart_service.CartService;
-import com.example.lesson7_spring_data.service.cart_service.LineItem;
+import com.example.lesson7_spring_data.entity.product_entity.ProductRepr;
+import com.example.lesson7_spring_data.entity.user_entity.UserRepr;
+import com.example.lesson7_spring_data.exception.NotFoundException;
+import com.example.lesson7_spring_data.entity.LineItem;
+import com.example.lesson7_spring_data.service.product_service.IProductService;
+import com.example.lesson7_spring_data.service.lineItem_service.ILineItemService;
+import com.example.lesson7_spring_data.service.user_service.IUserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,35 +21,45 @@ import java.util.List;
 @RequestMapping("/api/v1/cart")
 public class CartResource {
 
-    private final CartService cartService;
+    private ILineItemService lineItemService;
+    private IProductService productService;
+    private IUserService userService;
 
     @Autowired
-    public CartResource(CartService cartService) {
-        this.cartService = cartService;
+    public CartResource(ILineItemService lineItemService, IProductService productService, IUserService userService) {
+        this.lineItemService = lineItemService;
+        this.productService = productService;
+        this.userService = userService;
     }
 
-
     @PostMapping("/user/{userId}/product/{productId}")
-    public void addToCart(@PathVariable("userId") Long userId,
-                                 @PathVariable("productId") Long productId,
-                                 @RequestParam("qty") Integer qty) {
-        cartService.addProductForUser(productId,userId,qty);
+    public void addToCart(@PathVariable("userId") Long userId, @PathVariable("productId") Long productId) {
+
+        ProductRepr productRepr = productService.findById(productId).orElseThrow(() -> new NotFoundException("Продукт не найден" + productId));
+        UserRepr userRepr = userService.findById(userId).orElseThrow(() -> new NotFoundException("Потребитель не найден" + productId));
+
+        lineItemService.addProductForUser(productRepr, userRepr);
     }
 
     @GetMapping("/user/{userId}")
     public List<LineItem> findItemForUser(@PathVariable("userId") Long userId) {
-        return cartService.findAllItems(userId);
+        return lineItemService.findAllItems(userId);
     }
 
     @PostMapping("/remove/user/{userId}/product/{productId}")
     public void removeProduct(@PathVariable("userId") Long userId,
                               @PathVariable("productId") Long productId,
                               @RequestParam("qty") Integer qty) {
-        cartService.removeProductForUser(productId,userId,qty);
+
+        ProductRepr productRepr = productService.findById(productId).orElseThrow(() -> new NotFoundException("Продукт не найден" + productId));
+        UserRepr userRepr = userService.findById(userId).orElseThrow(() -> new NotFoundException("Потребитель не найден" + productId));
+
+        lineItemService.removeProductForUser(productRepr, userRepr);
+    }
+    @ExceptionHandler
+
+    public ResponseEntity<String> notFoundException(NotFoundException ex) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
     }
 
-    @DeleteMapping("/remove/user/{userId}")
-    public void removeAllProduct(@PathVariable("userId") Long userId) {
-        cartService.removeAllForUser(userId);
-    }
 }

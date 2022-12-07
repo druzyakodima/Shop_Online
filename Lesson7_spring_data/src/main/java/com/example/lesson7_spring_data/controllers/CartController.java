@@ -5,10 +5,11 @@ import com.example.lesson7_spring_data.entity.user_entity.User;
 import com.example.lesson7_spring_data.entity.user_entity.UserRepr;
 import com.example.lesson7_spring_data.exception.NotFoundException;
 import com.example.lesson7_spring_data.security.UserAuthService;
-import com.example.lesson7_spring_data.service.cart_service.CartService;
-import com.example.lesson7_spring_data.service.cart_service.LineItem;
-import com.example.lesson7_spring_data.service.product_service.ProductService;
-import com.example.lesson7_spring_data.service.user_service.UserService;
+import com.example.lesson7_spring_data.entity.LineItem;
+import com.example.lesson7_spring_data.service.product_service.IProductService;
+import com.example.lesson7_spring_data.service.lineItem_service.ILineItemService;
+import com.example.lesson7_spring_data.service.user_service.IUserService;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -18,74 +19,77 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @Slf4j
+@NoArgsConstructor
 @Controller
 @RequestMapping("/cart")
 public class CartController {
 
-    private ProductService productService;
-
+    private IProductService productService;
     private UserAuthService userAuthService;
-    private CartService cartService;
+    private ILineItemService lineItemService;
+    private IUserService userService;
 
     @Autowired
-    public CartController(ProductService productService, CartService cartServer, UserAuthService userAuthService) {
+    public CartController(IProductService productService,
+                          UserAuthService userAuthService,
+                          ILineItemService lineItemService,
+                          IUserService userService) {
+
         this.productService = productService;
-        this.cartService = cartServer;
         this.userAuthService = userAuthService;
+        this.lineItemService = lineItemService;
+        this.userService = userService;
     }
 
     @GetMapping()
     public String showCart(Model model) {
-        log.info("Looked at the products in the cart");
+
         User user = userAuthService.getCurrentUser();
 
-        List<LineItem> listCart = cartService.findAllItems(user.getId());
-        model.addAttribute("cart", listCart);
+        List<LineItem> listCart = lineItemService.findAllItems(user.getId());
+        Integer sumInCart = lineItemService.sumInCart(user.getId());
 
+        model.addAttribute("cart", listCart);
+        model.addAttribute("sumInCart", sumInCart);
+
+        log.info( "User id: " + user.getId() + " looked at the products in the cart");
         return "cart_templates/cart";
     }
 
     @PostMapping("/addToCart")
     public String addToCart(@RequestParam("productId") Long productId) {
-        log.info("Add product in cart");
+
 
         User user = userAuthService.getCurrentUser();
-        ProductRepr productRepr = productService.findById(productId).orElseThrow(NotFoundException::new);
-        long qty = 0;
 
-        if (cartService.getLineItemForUser() != null) {
-            qty = cartService.findAllItems(user.getId())
-                    .stream()
-                    .filter(product -> product.getProduct().equals(productRepr))
-                    .count();
-        }
+        ProductRepr productRepr = productService.findById(productId).orElseThrow(() -> new NotFoundException("Продукт не найден" + productId));
+        UserRepr userRepr = userService.findById(user.getId()).orElseThrow(() -> new NotFoundException("Потребитель не найден" + productId));
 
-        cartService.addProductForUser(productRepr.getId(), user.getId(), Math.toIntExact(++qty));
+        lineItemService.addProductForUser(productRepr, userRepr);
 
+        log.info("User id: " + user.getId() + " add product in cart");
         return "redirect:/product";
     }
 
-    @PostMapping("/deleteProductInCart")
+    @PostMapping("/delete")
     public String deleteProductFromCart(@RequestParam("productId") Long productId) {
-        log.info("Product delete request from shopping cart");
-        ProductRepr productRepr = productService.findById(productId).orElseThrow(NotFoundException::new);
-        User user = userAuthService.getCurrentUser();
 
-        long qty = cartService.findAllItems(user.getId())
-                .stream()
-                .filter(product -> product.getProduct().equals(productRepr))
-                .count();
 
-        cartService.removeProductForUser(productRepr.getId(), user.getId(), Math.toIntExact(qty));
+        ProductRepr productRepr = productService.findById(productId).orElseThrow(() -> new NotFoundException("Продукт не найден" + productId));
+        UserRepr userRepr = new UserRepr(userAuthService.getCurrentUser());
 
+        lineItemService.removeProductForUser(productRepr, userRepr);
+
+        log.info("User id: " +  userRepr.getId() + " product delete request from shopping cart");
         return "redirect:/cart";
     }
 
-    @DeleteMapping("/clear")
-    public String clearCart() {
+    @DeleteMapping("/clearCart")
+    public String clearCartForUser() {
 
         User user = userAuthService.getCurrentUser();
-        cartService.removeAllForUser(user.getId());
+        lineItemService.clearCart(user.getId());
+        log.info("User id: " +  user.getId() + " clear shopping cart");
         return "redirect:/cart";
     }
 }
