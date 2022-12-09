@@ -1,21 +1,35 @@
-package com.example.lesson7_spring_data.service.cart_service;
+package com.example.lesson7_spring_data.entity;
 
-import com.example.lesson7_spring_data.entity.product_entity.Product;
 import com.example.lesson7_spring_data.entity.product_entity.ProductRepr;
 import com.example.lesson7_spring_data.entity.user_entity.UserRepr;
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.springframework.security.core.userdetails.User;
+import org.springframework.data.redis.core.RedisHash;
+import org.springframework.data.redis.core.index.Indexed;
 
+import javax.persistence.Id;
+import java.io.Serializable;
 import java.util.Objects;
 
 @Data
-public class LineItem {
+@AllArgsConstructor
+@RedisHash("lineItem")
+public class LineItem implements Serializable {
 
+    @Id
+    private Long id;
+    @Indexed
     private ProductRepr product;
-
     private UserRepr user;
-
     private Integer qty;
+    private Integer totalPrice;
+
+    public LineItem(ProductRepr product, UserRepr user, Integer qty, Integer totalPrice) {
+        this.product = product;
+        this.user = user;
+        this.qty = qty;
+        this.totalPrice = totalPrice;
+    }
 
     public LineItem(ProductRepr product, UserRepr user, Integer qty) {
         this.product = product;
@@ -31,6 +45,9 @@ public class LineItem {
         this.user.setId(userId);
     }
 
+    public LineItem() {
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -43,4 +60,5 @@ public class LineItem {
     public int hashCode() {
         return Objects.hash(product.getId(), user.getId());
     }
+
 }
